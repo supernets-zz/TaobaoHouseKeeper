@@ -124,7 +124,7 @@ common.waitForText = function (method, txt, visible, sec) {
                 sleep(1000);
                 var btn = text(common.destAppName).findOne(3000);
                 if (btn != null) {
-                    log("switch to " + common.destAppName + ": " + click(btn.bounds().centerX(), btn.bounds().centerY()));
+                    log("switch to " + common.destAppName + ": " + btn.parent().parent().click());
                     sleep(1000);
                 } else {
                     log("no " + common.destAppName + " process");
@@ -167,7 +167,7 @@ common.waitForTextMatches = function (regex, visible, sec) {
                 sleep(1000);
                 var btn = text(common.destAppName).findOne(3000);
                 if (btn != null) {
-                    log("switch to " + common.destAppName + ": " + click(btn.bounds().centerX(), btn.bounds().centerY()));
+                    log("switch to " + common.destAppName + ": " + btn.parent().parent().click());
                     sleep(1000);
                 } else {
                     log("no " + common.destAppName + " process");
@@ -215,16 +215,41 @@ common.findImageInRegion = function (tmpl, x, y, w, h) {
 
 common.waitForImage = function (tmpl, sec) {
     var point = null;
-    var startTick = new Date();
-    for (;(new Date().getTime() - startTick) / 1000 < sec && point == null;) {
+    var startTick = new Date().getTime();
+    for (;;) {
         point = common.findImage(tmpl);
         if (point) {
+            log("等待 " + tmpl + " 出现");
+        } else {
             log(tmpl + " 出现 (" + point.x + ", " + point.y + ")");
             break;
-        } else {
-            log("等待 " + tmpl + " 出现");
         }
-        sleep(5000);
+
+        sleep(1000);
+        if (new Date().getTime() - startTick > sec * 1000) {
+            break;
+        }
+    }
+    //log(tmpl + " 出现" + point);
+    return point;
+}
+
+common.waitForImageInRegion = function (tmpl, x, y, w, h, sec) {
+    var point = null;
+    var startTick = new Date().getTime();
+    for (;;) {
+        point = common.findImageInRegion(tmpl, x, y, w, h);
+        if (point == null) {
+            log("等待 " + tmpl + " 出现");
+        } else {
+            log(tmpl + " 出现 (" + point.x + ", " + point.y + ")");
+            break;
+        }
+
+        sleep(1000);
+        if (new Date().getTime() - startTick > sec * 1000) {
+            break;
+        }
     }
     //log(tmpl + " 出现" + point);
     return point;

@@ -53,7 +53,7 @@ commonAction.backToAppMainPage = function () {
             sleep(1000);
             var btn = text(common.destAppName).findOne(3000);
             if (btn != null) {
-                log("switch to " + common.destAppName + ": " + click(btn.bounds().centerX(), btn.bounds().centerY()));
+                log("switch to " + common.destAppName + ": " + btn.parent().parent().click());
                 sleep(1000);
             } else {
                 log("no " + common.destAppName + " process");
@@ -104,7 +104,7 @@ commonAction.scrollThrough = function (txt, timeout) {
             sleep(1000);
             var btn = text(common.destAppName).findOne(3000);
             if (btn != null) {
-                log("switch to " + common.destAppName + ": " + click(btn.bounds().centerX(), btn.bounds().centerY()));
+                log("switch to " + common.destAppName + ": " + btn.parent().parent().click());
                 sleep(1000);
             } else {
                 log("no " + common.destAppName + " process");
@@ -174,7 +174,7 @@ commonAction.backToFeedTaskList = function (title) {
             sleep(1000);
             var btn = text(common.destAppName).findOne(3000);
             if (btn != null) {
-                log("switch to " + common.destAppName + ": " + click(btn.bounds().centerX(), btn.bounds().centerY()));
+                log("switch to " + common.destAppName + ": " + btn.parent().parent().click());
                 sleep(1000);
             } else {
                 log("no " + common.destAppName + " process");

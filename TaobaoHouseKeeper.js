@@ -6,6 +6,7 @@ var commonAction = require("./commonAction.js");
 var chargeCenter = require("./chargeCenter.js");
 var vegetables = require("./vegetables.js");
 var tmallCar = require("./tmallCar.js");
+var assetIsland = require("./assetIsland.js");
 
 var shutdownFlag = threads.atomic();
 var background = threads.disposable();
@@ -110,7 +111,7 @@ ui.ctrl.click(()=>{
 threads.start(function(){
     // 阻塞,等待连接条件
     var flag = background.blockedGet();
-	log("启动考拉海购管家主线程:");
+	log("启动淘宝管家主线程:");
     requestScreenCapture();
     while (flag > 0) {
         var ret = false;
@@ -170,6 +171,7 @@ function isAllDailyTaskComplete() {
     var taskList = [];
     taskList.push.apply(taskList, vegetables.dailyJobs);
     taskList.push.apply(taskList, tmallCar.dailyJobs);
+    taskList.push.apply(taskList, assetIsland.dailyJobs);
     for (var i = 0; i < taskList.length; i++) {
         var done = common.safeGet(nowDate + ":" + taskList[i]);
         if (done == null) {
@@ -188,7 +190,7 @@ function mainWorker() {
         sleep(1000);
         var btn = text(common.destAppName).findOne(3000);
         if (btn != null) {
-            log("switch to " + common.destAppName + ": " + click(btn.bounds().centerX(), btn.bounds().centerY()));
+            log("switch to " + common.destAppName + ": " + btn.parent().parent().click());
             sleep(1000);
         } else {
             log("no " + common.destAppName + " process");
@@ -203,6 +205,8 @@ function mainWorker() {
             vegetables.doSignIn();
 
             tmallCar.doSignIn();
+
+            assetIsland.doSignIn();
 
             ret = true;
         }

@@ -67,22 +67,22 @@ doOneWalkTasks = function (tasklist) {
         // 等待离开任务列表页面
         var startTick = new Date().getTime();
         sleep(5000);
-    
+
         for (;;) {
             swipe(device.width / 5, device.height * 13 / 16, device.width / 5, device.height * 11 / 16, Math.floor(Math.random() * 200) + 200);
             var completeTips = text("浏览完成").findOne(1000);
             if (completeTips != null) {
                 break;
             }
-    
+
             if (new Date().getTime() - startTick > tasklist[i].Timeout * 1000) {
                 log("doOneWalkTasks timeout");
                 break;
             }
         }
-    
+
         commonAction.backToFeedTaskList(tasklist[i].Title);
-    
+
         var getItBtn = text("我收下了").findOne(1000);
         if (getItBtn != null) {
             log("点击 我收下了: " + getItBtn.click());
@@ -104,24 +104,25 @@ doLottery = function (actionBar) {
     }
 
     toast("vegetables.doLottery");
-    var lotteryBtn = actionBar.child(1);
-    var clickRet = lotteryBtn.click();
-    if (!clickRet) {
-        toastLog("点击 抽奖: " + clickRet);
-        return;
-    }
+    var startTick = new Date().getTime();
+    for (;;) {
+        var lotteryBtn = actionBar.child(1);
+        var clickRet = lotteryBtn.click();
+        if (!clickRet) {
+            toastLog("点击 抽奖: " + clickRet);
+            return;
+        }
 
-    log("点击 抽奖: " + clickRet + ", 并等待 /.*每次消耗20g饲料|今日抽奖机会已用完明天再来吧/ 出现");
-    var lotteryTips = common.waitForTextMatches(/.*每次消耗20g饲料|今日抽奖机会已用完明天再来吧/, true, 5);
-    if (lotteryTips == null) {
-        return;
-    }
+        toastLog("点击 抽奖: " + clickRet + ", 并等待 /.*每次消耗20g饲料|今日抽奖机会已用完明天再来吧/ 出现");
+        var lotteryTips = common.waitForTextMatches(/.*每次消耗20g饲料|今日抽奖机会已用完明天再来吧/, true, 5);
+        if (lotteryTips == null) {
+            return;
+        }
 
-    if (lotteryTips.text().indexOf("每次消耗20g饲料") != -1) {
-        //var closeBtn = lotteryTips.parent().parent().child(lotteryTips.parent().parent().childCount() - 1);
-        var count = parseInt(lotteryTips.parent().child(1).text());
-        log("可抽奖次数: " + count);
-        for (var i = 0; i < count; i++) {
+        if (lotteryTips.text().indexOf("每次消耗20g饲料") != -1) {
+            //var closeBtn = lotteryTips.parent().parent().child(lotteryTips.parent().parent().childCount() - 1);
+            var count = parseInt(lotteryTips.parent().child(1).text());
+            log("可抽奖次数: " + count);
             var num = Math.floor(Math.random() * 9) + 1;
             clickRet = lotteryTips.parent().parent().child(num).click();
             log("点击 " + num + ": " + clickRet);
@@ -133,27 +134,26 @@ doLottery = function (actionBar) {
 
             var continueTips = common.waitForText("text", "继续翻牌", true, 5);
             if (continueTips != null) {
-                // var continueParent = continueTips.parent().parent().parent().parent();
-                // log("关闭 继续翻牌: " + continueParent.child(continueParent.childCount() - 1).click());
-                log("点击 继续翻牌: " + continueTips.parent().click());
-                sleep(2000);
+                var continueParent = continueTips.parent().parent().parent().parent();
+                toastLog("关闭 继续翻牌: " + continueParent.child(continueParent.childCount() - 1).click());
+                // log("点击 继续翻牌: " + continueTips.parent().click());
+                sleep(3000);
             }
+        } else {
+            var closeBtn = lotteryTips.parent().child(lotteryTips.parent().childCount() - 1);
+            log("关闭 抽奖: " + closeBtn.click());
+            sleep(3000);
+
+            common.safeSet(nowDate + ":" + lotteryTag, "done");
+            toastLog("完成 " + lotteryTag);
+            break;
         }
-        common.safeSet(nowDate + ":" + lotteryTag, "done");
-        toastLog("完成 " + lotteryTag);
-    } else {
-        common.safeSet(nowDate + ":" + lotteryTag, "done");
-        toastLog("完成 " + lotteryTag);
-    }
 
-    var lotteryTips = common.waitForTextMatches(/.*每次消耗20g饲料|今日抽奖机会已用完明天再来吧/, true, 5);
-    if (lotteryTips == null) {
-        return;
+        if (new Date().getTime() - startTick > 2 * 60 * 1000) {
+            log("doLottery timeout");
+            break;
+        }
     }
-
-    var closeBtn = lotteryTips.parent().child(lotteryTips.parent().childCount() - 1);
-    log("关闭 抽奖: " + closeBtn.click());
-    sleep(3000);
 }
 
 //领饲料任务
@@ -332,13 +332,19 @@ vegetables.doSignIn = function () {
     var done1 = common.safeGet(nowDate + ":" + signInBonusTag);
     var done2 = common.safeGet(nowDate + ":" + getFeedTag);
     var done3 = common.safeGet(nowDate + ":" + lotteryTag);
-    if (done1 != null && done2 != null && done3 != null && actionBar.childCount() == 4) {
-        clickRet = actionBar.child(3).click();
-        if (!clickRet) {
-            return;
+    if (done1 != null && done2 != null && done3 != null) {
+        if (actionBar.childCount() == 4) {
+            clickRet = actionBar.child(3).click();
+            if (!clickRet) {
+                log("点击 极速金盆: " + clickRet);
+                return;
+            }
+
+            log("点击 极速金盆: " + clickRet);
+            sleep(2000);
+        } else {
+            log("没有 极速金盆");
         }
-        log("点击 极速金盆: " + clickRet);
-        sleep(2000);
 
         common.safeSet(nowDate + ":" + signInTag, "done");
         toastLog("完成 " + signInTag);

@@ -3,6 +3,8 @@ var chargeCenter = {};
 var common = require("./common.js");
 var commonAction = require("./commonAction.js");
 
+const kaolaTips = "./ChargeCenter/kaolaTips.jpg";
+
 //const dailyJobsTag = "薅羊毛充话费每日任务";
 
 chargeCenter.dailyJobs = [];
@@ -404,7 +406,7 @@ doUCTask = function (tasklist) {
             var btn = tips.parent().parent().child(0).child(2);
             var clickRet = click(btn.bounds().centerX(), btn.bounds().centerY());
             log("点击 马上领取: " + clickRet);
-            sleep(1000);
+            sleep(2000);
             var confirmBtn = text("确定").findOne(1000);
             if (confirmBtn != null) {
                 clickRet = confirmBtn.click();
@@ -415,6 +417,57 @@ doUCTask = function (tasklist) {
                 }
                 sleep(1000);
             }
+            sleep(tasklist[i].Timeout * 1000);
+        }
+
+        commonAction.backToFeedTaskList(tasklist[i].Title);
+        ret = true;
+        break;
+    }
+
+    return ret;
+}
+
+doKaolaTask = function (tasklist) {
+    var ret = false;
+    for (var i = 0; i < tasklist.length; i++) {
+        toastLog("点击[" + (i+1) + "/" + tasklist.length + "] " + tasklist[i].Title + " " + tasklist[i].BtnName + ": " + tasklist[i].Button.click());
+        // 等待离开任务列表页面
+        sleep(5000);
+
+        //等待考拉提示出现
+        var tipsPt = common.waitForImageInRegion(kaolaTips, 0, device.height / 2, device.width, device.height / 2, 15);
+        if (tipsPt != null) {
+            var img = images.read(kaolaTips);
+            var clickRet = click(tipsPt.x, tipsPt.y + img.getHeight());
+            log("点击 马上去领取: " + clickRet);
+            sleep(2000);
+            var confirmBtn = text("确定").findOne(1000);
+            if (confirmBtn != null) {
+                clickRet = confirmBtn.click();
+                log("点击 确定: " + clickRet);
+                if (clickRet == false) {
+                    commonAction.backToFeedTaskList(tasklist[i].Title);
+                    break;
+                }
+                sleep(1000);
+            }
+
+            var startTick = new Date().getTime();
+            for (;;) {
+                var tips = textContains("浏览").visibleToUser(true).findOne(1000);
+                if (tips != null) {
+                    sleep(3000);
+                    break;
+                }
+
+                log("等待 浏览 出现");
+                if (new Date().getTime() - startTick > 15 * 1000) {
+                    commonAction.backToFeedTaskList(tasklist[i].Title);
+                    return ret;
+                }
+            }
+
             sleep(tasklist[i].Timeout * 1000);
         }
 
@@ -474,59 +527,63 @@ doGetFeedTasks = function () {
         var merchantWalkTaskList = [];  //逛5个商品
         var appReactTaskList = [];  //需要在另外场景操作
         var ucTaskList = [];    //UC浏览器任务
+        var kaolaTaskList = []; //考拉海购任务
         totalTasks.forEach(function (tv) {
             if (tv.BtnName == "领取奖励") {
                 doneTaskList.push(tv);
-                log("未完成任务" + (doneTaskList.length + oneWalkTaskList.length + merchantWalkTaskList.length + appReactTaskList.length + ucTaskList.length) + ": " + tv.Title + ", " + tv.BtnName + ", (" + tv.Button.bounds().centerX() + ", " + tv.Button.bounds().centerY() + "), " + tv.Tips);
+                log("未完成任务" + (doneTaskList.length + oneWalkTaskList.length + merchantWalkTaskList.length + appReactTaskList.length + ucTaskList.length + kaolaTaskList.length) + ": " + tv.Title + ", " + tv.BtnName + ", (" + tv.Button.bounds().centerX() + ", " + tv.Button.bounds().centerY() + "), " + tv.Tips);
             } else if (tv.Tips.indexOf("点击5个商品") != -1) {
                 if (tv.BtnName != "再逛逛") {
                     merchantWalkTaskList.push(tv);
-                    log("未完成任务" + (doneTaskList.length + oneWalkTaskList.length + merchantWalkTaskList.length + appReactTaskList.length + ucTaskList.length) + ": " + tv.Title + ", " + tv.BtnName + ", (" + tv.Button.bounds().centerX() + ", " + tv.Button.bounds().centerY() + "), " + tv.Tips);
+                    log("未完成任务" + (doneTaskList.length + oneWalkTaskList.length + merchantWalkTaskList.length + appReactTaskList.length + ucTaskList.length + kaolaTaskList.length) + ": " + tv.Title + ", " + tv.BtnName + ", (" + tv.Button.bounds().centerX() + ", " + tv.Button.bounds().centerY() + "), " + tv.Tips);
                 } else {
                     log("跳过任务: " + tv.Title + ", " + tv.BtnName + ", (" + tv.Button.bounds().centerX() + ", " + tv.Button.bounds().centerY() + "), " + tv.Tips);
                 }
-            } else if (/登录支付宝芭芭农场.*|免费领鸡蛋.*|话费95折特惠充值.*|去饿了么领免费水果.*|通信大礼包限时.*|提款机分现金.*|逛首页好货.*|分享即可领饲料.*|去天猫汽车玩攒动力.*|去UC极速版领红包.*|逛精彩直播赢奖励.*|攒钻石兑1分购黄金.*|逛水果蔬菜.*|去膨胀红包.*/.test(tv.Title) || /来小黑盒.*/.test(tv.Tips)) {
+            } else if (/.*考拉海购.*/.test(tv.Title)) {
+                kaolaTaskList.push(tv);
+                log("未完成任务" + (doneTaskList.length + oneWalkTaskList.length + merchantWalkTaskList.length + appReactTaskList.length + ucTaskList.length + kaolaTaskList.length) + ": " + tv.Title + ", " + tv.BtnName + ", (" + tv.Button.bounds().centerX() + ", " + tv.Button.bounds().centerY() + "), " + tv.Tips);
+            } else if (/登录支付宝芭芭农场.*|免费领鸡蛋.*|话费95折特惠充值.*|去饿了么领免费水果.*|通信大礼包限时.*|提款机分现金.*|逛首页好货.*|分享即可领饲料.*|去天猫汽车玩攒动力.*|去UC极速版领红包.*|逛精彩直播赢奖励.*|攒钻石兑1分购黄金.*|逛水果蔬菜.*|去膨胀红包.*/.test(tv.Title) || /来小黑盒.*/.test(tv.Tips) || tv.Tips.indexOf("浏览") != -1) {
                 if (tv.Title.indexOf("分享即可领饲料") != -1) {
                     tv.Keyword = "淘友圈";
                 } else {
                     tv.Keyword = "浏览";
                 }
                 oneWalkTaskList.push(tv);
-                log("未完成任务" + (doneTaskList.length + oneWalkTaskList.length + merchantWalkTaskList.length + appReactTaskList.length + ucTaskList.length) + ": " + tv.Title + ", " + tv.BtnName + ", (" + tv.Button.bounds().centerX() + ", " + tv.Button.bounds().centerY() + "), " + tv.Tips);
+                log("未完成任务" + (doneTaskList.length + oneWalkTaskList.length + merchantWalkTaskList.length + appReactTaskList.length + ucTaskList.length + kaolaTaskList.length) + ": " + tv.Title + ", " + tv.BtnName + ", (" + tv.Button.bounds().centerX() + ", " + tv.Button.bounds().centerY() + "), " + tv.Tips);
             } else if (/划蒜练功一次.*/.test(tv.Title)) {
                 tv.ActionName = "练功升级";
                 appReactTaskList.push(tv);
-                log("未完成任务" + (doneTaskList.length + oneWalkTaskList.length + merchantWalkTaskList.length + appReactTaskList.length + ucTaskList.length) + ": " + tv.Title + ", " + tv.BtnName + ", (" + tv.Button.bounds().centerX() + ", " + tv.Button.bounds().centerY() + "), " + tv.Tips);
+                log("未完成任务" + (doneTaskList.length + oneWalkTaskList.length + merchantWalkTaskList.length + appReactTaskList.length + ucTaskList.length + kaolaTaskList.length) + ": " + tv.Title + ", " + tv.BtnName + ", (" + tv.Button.bounds().centerX() + ", " + tv.Button.bounds().centerY() + "), " + tv.Tips);
             } else if (/跑图赢红包.*/.test(tv.Title)) {
                 tv.ActionName = "训练";
                 appReactTaskList.push(tv);
-                log("未完成任务" + (doneTaskList.length + oneWalkTaskList.length + merchantWalkTaskList.length + appReactTaskList.length + ucTaskList.length) + ": " + tv.Title + ", " + tv.BtnName + ", (" + tv.Button.bounds().centerX() + ", " + tv.Button.bounds().centerY() + "), " + tv.Tips);
+                log("未完成任务" + (doneTaskList.length + oneWalkTaskList.length + merchantWalkTaskList.length + appReactTaskList.length + ucTaskList.length + kaolaTaskList.length) + ": " + tv.Title + ", " + tv.BtnName + ", (" + tv.Button.bounds().centerX() + ", " + tv.Button.bounds().centerY() + "), " + tv.Tips);
             } else if (/去奇妙花园兑鲜花.*/.test(tv.Title)) {
                 tv.ActionName = "下载打开APP";
                 appReactTaskList.push(tv);
-                log("未完成任务" + (doneTaskList.length + oneWalkTaskList.length + merchantWalkTaskList.length + appReactTaskList.length + ucTaskList.length) + ": " + tv.Title + ", " + tv.BtnName + ", (" + tv.Button.bounds().centerX() + ", " + tv.Button.bounds().centerY() + "), " + tv.Tips);
+                log("未完成任务" + (doneTaskList.length + oneWalkTaskList.length + merchantWalkTaskList.length + appReactTaskList.length + ucTaskList.length + kaolaTaskList.length) + ": " + tv.Title + ", " + tv.BtnName + ", (" + tv.Button.bounds().centerX() + ", " + tv.Button.bounds().centerY() + "), " + tv.Tips);
             } else if (/领天猫无门槛红包.*/.test(tv.Title)) {
                 tv.ActionName = "下载打开APP";
                 tv.Timeout = 30;
                 appReactTaskList.push(tv);
-                log("未完成任务" + (doneTaskList.length + oneWalkTaskList.length + merchantWalkTaskList.length + appReactTaskList.length + ucTaskList.length) + ": " + tv.Title + ", " + tv.BtnName + ", (" + tv.Button.bounds().centerX() + ", " + tv.Button.bounds().centerY() + "), " + tv.Tips);
+                log("未完成任务" + (doneTaskList.length + oneWalkTaskList.length + merchantWalkTaskList.length + appReactTaskList.length + ucTaskList.length + kaolaTaskList.length) + ": " + tv.Title + ", " + tv.BtnName + ", (" + tv.Button.bounds().centerX() + ", " + tv.Button.bounds().centerY() + "), " + tv.Tips);
             } else if (/领裹酱抽手机.*/.test(tv.Title)) {
                 tv.ActionName = "去菜鸟0元领";
                 appReactTaskList.push(tv);
-                log("未完成任务" + (doneTaskList.length + oneWalkTaskList.length + merchantWalkTaskList.length + appReactTaskList.length + ucTaskList.length) + ": " + tv.Title + ", " + tv.BtnName + ", (" + tv.Button.bounds().centerX() + ", " + tv.Button.bounds().centerY() + "), " + tv.Tips);
+                log("未完成任务" + (doneTaskList.length + oneWalkTaskList.length + merchantWalkTaskList.length + appReactTaskList.length + ucTaskList.length + kaolaTaskList.length) + ": " + tv.Title + ", " + tv.BtnName + ", (" + tv.Button.bounds().centerX() + ", " + tv.Button.bounds().centerY() + "), " + tv.Tips);
             } else if (/去闲鱼逛逛.*/.test(tv.Title)) {
                 tv.ActionName = "马上去";
                 appReactTaskList.push(tv);
-                log("未完成任务" + (doneTaskList.length + oneWalkTaskList.length + merchantWalkTaskList.length + appReactTaskList.length + ucTaskList.length) + ": " + tv.Title + ", " + tv.BtnName + ", (" + tv.Button.bounds().centerX() + ", " + tv.Button.bounds().centerY() + "), " + tv.Tips);
+                log("未完成任务" + (doneTaskList.length + oneWalkTaskList.length + merchantWalkTaskList.length + appReactTaskList.length + ucTaskList.length + kaolaTaskList.length) + ": " + tv.Title + ", " + tv.BtnName + ", (" + tv.Button.bounds().centerX() + ", " + tv.Button.bounds().centerY() + "), " + tv.Tips);
             } else if (/上UC领福利.*/.test(tv.Title)) {
                 ucTaskList.push(tv);
-                log("未完成任务" + (doneTaskList.length + oneWalkTaskList.length + merchantWalkTaskList.length + appReactTaskList.length + ucTaskList.length) + ": " + tv.Title + ", " + tv.BtnName + ", (" + tv.Button.bounds().centerX() + ", " + tv.Button.bounds().centerY() + "), " + tv.Tips);
+                log("未完成任务" + (doneTaskList.length + oneWalkTaskList.length + merchantWalkTaskList.length + appReactTaskList.length + ucTaskList.length + kaolaTaskList.length) + ": " + tv.Title + ", " + tv.BtnName + ", (" + tv.Button.bounds().centerX() + ", " + tv.Button.bounds().centerY() + "), " + tv.Tips);
             } else {
                 log("跳过任务: " + tv.Title + ", " + tv.BtnName + ", (" + tv.Button.bounds().centerX() + ", " + tv.Button.bounds().centerY() + "), " + tv.Tips);
             }
         });
 
-        var uncompleteTaskNum = doneTaskList.length + oneWalkTaskList.length + merchantWalkTaskList.length + appReactTaskList.length + ucTaskList.length;
+        var uncompleteTaskNum = doneTaskList.length + oneWalkTaskList.length + merchantWalkTaskList.length + appReactTaskList.length + ucTaskList.length + kaolaTaskList.length;
         log("未完成任务数: " + uncompleteTaskNum);
         if (uncompleteTaskNum == 0) {
             log("关闭 领饲料任务列表: " + closeBtn.click());
@@ -561,6 +618,12 @@ doGetFeedTasks = function () {
         }
 
         if (doUCTask(ucTaskList)) {
+            log("关闭 领饲料任务列表: " + closeBtn.click());
+            sleep(3000);
+            continue;
+        }
+
+        if (doKaolaTask(kaolaTaskList)) {
             log("关闭 领饲料任务列表: " + closeBtn.click());
             sleep(3000);
             continue;
